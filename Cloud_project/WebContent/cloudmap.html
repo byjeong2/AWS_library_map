@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>부산광역시 도서관 한눈에 보기</title>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    
+    <script>
+    var info=[];
+    $.getJSON('https://libbuc.s3.ap-northeast-2.amazonaws.com/testlib1.json',function(data){
+       $.each(data, function (i,item){
+          info.push(item.name);
+          info.push(item.juso);
+          info.push(item.tel);
+          info.push(item.lat);
+          info.push(item.lng);
+       });
+    });
+    
+      </script>
+      
+      <style>
+      div.left{
+      width: 70%;
+      float: left;
+      box-sizing: border-box;
+      }
+      div.right{
+      width:30%;
+      float: right;
+      box-sizing: border-box;
+      padding: 50px;
+      }
+      </style>
+</head>
+
+<body>
+    <div class ='left'>
+    
+    <!-- d -->
+    <h1>부산광역시 도서관 한눈에 보기</h1>
+    <div id="map" style="width:100%; height:500px;"></div>
+    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=67116a446ecbb5ea55e867c0bcd53d88"></script>
+    
+    <script>
+    var mapContainger = document.getElementById('map'),
+    	mapOption ={
+    		center: new kakao.maps.LatLng(35.157690,129.059151),
+    		level: 7
+    };
+    //지도를 표시할 div와 지도 옵션으로 지도 생성
+    var map = new kakao.maps.Map(mapContainer, mapOption);
+    
+    for (var i =0; i<info.length; i++){
+    	if(i % 6 ==0){
+    		var markerPosition = new kakao.maps.LatLng(info[i+4],info[i+5]);
+    		//marker
+    		var marker = new kakao.maps.Marker({
+    			position: markerPosition,
+    		});
+    		
+    		//marker on map
+    		marker.setMap(map);
+    		
+    		var iwPosition = new kakao.maps.LatLng(info[i+4], info[i+5]); //infowindow
+    		
+    		//document.write(info[i]);
+    		
+    		//marker click->infowindow
+    		var iwContent = (info[i]);
+    		var iwPosition = new kakao.maps.LatLng(info[i+4],[i+5]);
+    		
+    		var hContent = (info[i]);
+    		
+    		//infow window생성
+    		var infowindow = new kakao.maps.InfoWindow({
+    			posision : iwPosition,
+    			content : iwContent
+    		});
+    		
+    		kakao.maps.event.addListener(marker,'mouseover',makeOverListener(map,marker,infowindow));
+    		kakao.maps.event.addListener(marker,'mouseout',makeOverListener(infowindow));
+    		
+    		kakao.maps.event.addListener(marker,'click',makeOverListener(infowindow,info[i],info[i+1],info[i+2],info[i+3]));
+    		
+    		//open infowindow
+    		function makeOverListener(map,marker,infowindow){
+    			return function(){
+    				infowindow.open(map,marker);
+    			};
+    		}//infowindow open
+    		
+    		//close infowindow
+    		function makeOverListener(infowindow){
+    			return function(){
+    				infowindow.close();
+    			};
+    		}//infowindow close
+    		
+    		function makeClickListener(infowindow,LibraryName,LibraryJuso, LibraryTel, LibraryWeb){
+    			return function(){
+    				document.getElementById("id1").textContent="도서관 이름 : " + LibraryName;
+    				document.getElementById("id11").textContent="주소 : " + LibraryJuso;
+    				document.getElementById("id3").textContent="도서관 전화번호 : " + LibraryTel;
+    				document.getElementById("id4").textContent="홈페이지 : " + LibraryWeb;
+    				
+    				document.getElementById("pw").value=LibraryName; //마커 클릭시 만들어둔 table의 도서관 이름이 바뀌도록 값 받아옴
+    			}
+    		}
+    	}//if close
+    }//info close
+    
+    </script>
+    </div>
+        
+    <div class = 'right'>
+    	<h2 id= "id1"></h2>
+    	<h2 id= "id11"></h2>
+    	<h2 id= "id3"></h2>
+    	<h5 id= "id4"></h5>
+    	<h6>+++++++++++++++ 간단 후기 남기기 +++++++++++++++</h6>
+    	
+    	<div id="wrap">
+    		<table id ="review_table">
+    			<tbody>
+    				<tr>
+    					<td class="left_box"><label for="">작성자명</label></td>
+    					<td class="input_box"><input type="text" id="name" name="name" /></td>
+    				</tr>
+    				<tr>
+    					<td class="left_box"><label for="">도서관명</label></td>
+    					<td id="id2"><input type="text" id="pw" name="pw" /></td>
+    				</tr>
+    				<tr>
+    					<td class="left_box"><label for="">간단후기</label></td>
+    					<td class="input_box"><input type="text" id="content" name="content" /></td>
+    				</tr>
+    			</tbody>
+    		</table>
+    		
+    		<input type="button" id="enter" value="작성 완료"/>
+    	</div>
+    	
+    	
+    	
+    	<script type="text/javascript">
+    		var API_URL='https://s8dwrdbh1j.execute-api.ap-northeast-2.amazonaws.com/sumin-rev/entries';
+    		//APIGateway배포 후 entries에서 받은 url호출
+    		
+    		$(document).ready(function (){
+    			
+    			$('#enter').on('click', function() {
+    				$.ajax({
+    					type: 'POST', //API Gateway만들때, post로만듦.
+    					url: API_URL,
+    					data: JSON.stringfy({
+    						"name": $('#name').val(),
+    						"pw": $('#pw').val(),
+    						"content": $('#content').val()
+    					}),
+    					contentType: "application/json",
+    					//API Gateway설정 매핑 탬플릿
+    					
+    					success: function(data) {
+    						location.reload();
+    						alert('작성완료!');
+    					}
+    				});
+    			});
+    		});
+    	</script>
+    </div>
+</body>
+</html>
